@@ -14,6 +14,10 @@ import java.util.List;
 @Data
 public class ArticlePublishCsdnRequest implements Serializable {
 
+    /**
+     * 文章ID：更新已有文章时必带（抓包确认编辑器更新场景带 id）
+     */
+    private Long id;
     private String title;
     private String markdowncontent;
     private String content;

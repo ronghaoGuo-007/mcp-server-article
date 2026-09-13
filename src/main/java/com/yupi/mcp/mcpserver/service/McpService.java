@@ -61,7 +61,7 @@ public class McpService {
      *
      * @return 内容
      */
-    @Tool(description = "发布文章到CSDN，参数为标题、内容、描述，返回值为文章链接")
+    @Tool(description = "发布文章到CSDN。参数：title标题、content为Markdown正文、description摘要(最长256字)、tags标签(英文逗号分隔,默认'后端')、categories分类专栏(英文逗号分隔,需与已有专栏名完全一致)、draft(true=仅存草稿箱,false=直接发布,默认草稿更安全)、dryRun(true=只返回请求体不真正发送,用于调试)")
     public String publishArticle2Csdn(ArticlePublishRequest articlePublishRequest) {
         return articleCsdnService.publishArticle(articlePublishRequest).getLink();
     }

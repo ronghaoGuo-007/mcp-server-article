@@ -37,27 +37,38 @@ public class ArticleCsdnServiceImpl implements ArticleService {
     @Override
     public ArticlePublishResponse publishArticle(ArticlePublishRequest articlePublishRequest) {
         ArticlePublishCsdnRequest articlePublishCsdnRequest = new ArticlePublishCsdnRequest();
+        // 传入 id = 更新已有文章（抓包确认：编辑器更新时请求体带 id）
+        if (articlePublishRequest.getId() != null) {
+            articlePublishCsdnRequest.setId(articlePublishRequest.getId());
+        }
         articlePublishCsdnRequest.setTitle(articlePublishRequest.getTitle());
         String desc = articlePublishRequest.getDescription();
-        if (StrUtil.isBlank(desc) && desc.length() < 50) {
+        if (StrUtil.isBlank(desc)) {
             desc = TextTransformUtils.markdownToTextCustom(articlePublishRequest.getContent());
         }
-        if (desc.length() > 100) {
-            desc = desc.substring(0, 100);
+        if (desc.length() > 256) {
+            desc = desc.substring(0, 256);
         }
         articlePublishCsdnRequest.setDescription(desc);
         articlePublishCsdnRequest.setMarkdowncontent(articlePublishRequest.getContent());
         articlePublishCsdnRequest.setContent(TextTransformUtils.markdownToHtml(articlePublishRequest.getContent()));
-        articlePublishCsdnRequest.setTags("后端");
+        articlePublishCsdnRequest.setTags(StrUtil.isBlank(articlePublishRequest.getTags()) ? "后端" : articlePublishRequest.getTags());
+        articlePublishCsdnRequest.setCategories(StrUtil.isBlank(articlePublishRequest.getCategories()) ? "" : articlePublishRequest.getCategories());
         articlePublishCsdnRequest.setReadType("public");
         articlePublishCsdnRequest.setType("original");
         articlePublishCsdnRequest.setSource("pc_mdeditor");
         articlePublishCsdnRequest.setNotAutoSaved("1");
         articlePublishCsdnRequest.setCoverType(1);
         articlePublishCsdnRequest.setIsNew(1);
-        articlePublishCsdnRequest.setStatus(0);
+        // 抓包结论：官方编辑器存草稿用 status=2 + pubStatus=draft；发布用 status=0
+        boolean draft = Boolean.TRUE.equals(articlePublishRequest.getDraft());
+        if (draft) {
+            articlePublishCsdnRequest.setStatus(2);
+            articlePublishCsdnRequest.setPubStatus("draft");
+        } else {
+            articlePublishCsdnRequest.setStatus(0);
+        }
         articlePublishCsdnRequest.setLevel(0);
-        articlePublishCsdnRequest.setCategories("");
         articlePublishCsdnRequest.setOriginalLink("");
         articlePublishCsdnRequest.setResourceId("");
         articlePublishCsdnRequest.setVoteId(0);
@@ -66,6 +77,12 @@ public class ArticleCsdnServiceImpl implements ArticleService {
         articlePublishCsdnRequest.setAuthorizedStatus(false);
         ArticlePublishResponse articlePublishResponse = new ArticlePublishResponse();
         articlePublishResponse.setIsSuccess(false);
+        // 试运行：只返回将要发送的请求体，不调用接口
+        if (Boolean.TRUE.equals(articlePublishRequest.getDryRun())) {
+            articlePublishResponse.setIsSuccess(true);
+            articlePublishResponse.setLink("DRY-RUN 未调用接口，请求体如下：\n" + JSONUtil.toJsonStr(articlePublishCsdnRequest));
+            return articlePublishResponse;
+        }
         String result = null;
         try {
             Map<String, String> headerMap = new HashMap<>();
@@ -80,7 +97,7 @@ public class ArticleCsdnServiceImpl implements ArticleService {
             HttpResponse response = HttpRequest.post(BASE_URL)
                     .addHeaders(headerMap)
                     .body(JSONUtil.toJsonStr(articlePublishCsdnRequest))
-                    .timeout(3000)
+                    .timeout(30000)
                     .execute();
             result = response.body();
             log.info("call csdn[publishArticle], result = {}", result);
@@ -95,6 +112,13 @@ public class ArticleCsdnServiceImpl implements ArticleService {
 
             int code = resp.getCode();
             if (code == 200) {
+                // 存草稿时 data 是字符串"成功"，发布时才是含 id/url 的对象
+                if (!(resp.getData() instanceof Map)) {
+                    articlePublishResponse.setId("draft");
+                    articlePublishResponse.setLink("已保存到草稿箱（未发布）");
+                    articlePublishResponse.setIsSuccess(true);
+                    return articlePublishResponse;
+                }
                 ArticlePublishCsdnResponse.Data data = JSONUtil.toBean(JSONUtil.toJsonStr(resp.getData()), ArticlePublishCsdnResponse.Data.class);
                 articlePublishResponse.setId(data.getId().toString());
                 articlePublishResponse.setLink(data.getUrl());
