@@ -74,6 +74,11 @@ public class ArticleCsdnServiceImpl implements ArticleService {
         articlePublishCsdnRequest.setVoteId(0);
         articlePublishCsdnRequest.setSyncGitCode(0);
         articlePublishCsdnRequest.setCoverImages(new ArrayList<>());
+        // 封面：抓包确认格式为 cover_images=[URL数组] + cover_type=1（单图）；草稿阶段平台不持久化，发布时生效
+        if (articlePublishRequest.getCoverImages() != null && !articlePublishRequest.getCoverImages().isEmpty()) {
+            articlePublishCsdnRequest.setCoverImages(articlePublishRequest.getCoverImages());
+            articlePublishCsdnRequest.setCoverType(1);
+        }
         articlePublishCsdnRequest.setAuthorizedStatus(false);
         ArticlePublishResponse articlePublishResponse = new ArticlePublishResponse();
         articlePublishResponse.setIsSuccess(false);

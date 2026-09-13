@@ -2,6 +2,8 @@ package com.yupi.mcp.mcpserver.dto;
 
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * 文件发布请求
  *
@@ -34,4 +36,9 @@ public class ArticlePublishRequest {
      * 试运行：true=只返回将要发送的请求体，不真正调用接口
      */
     private Boolean dryRun;
+    /**
+     * 封面图 URL 列表（需为 CSDN 图床 i-blog.csdnimg.cn 的 URL）。
+     * 注意：草稿阶段平台不持久化封面，发布时生效
+     */
+    private List<String> coverImages;
 }

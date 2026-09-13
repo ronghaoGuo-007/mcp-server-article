@@ -3,6 +3,19 @@
 本项目基于 [gulihua10010/mcp-server-article](https://github.com/gulihua10010/mcp-server-article) 二次开发。
 所有变更均通过浏览器抓包（对照官方创作中心编辑器的真实请求）验证后实现，接口行为确认依据见文末。
 
+## [1.2.0] - 2026-09-14
+
+### 新增
+
+- `coverImages` 参数：封面图 URL 列表（CSDN 图床 i-blog.csdnimg.cn 的 URL），抓包确认格式为 `cover_images=[URL数组]` + `cover_type=1`（单图封面）。**平台行为：草稿阶段不持久化封面，发布时生效**。
+
+### 已抓包待实现（图床上传）
+
+- 本地图片上传 CSDN 图床的完整链路已抓包确认：
+  1. `POST /resource-api/v1/image/direct/upload/signature`（body: `{"imageTemplate":"","appName":"direct_blog","imageSuffix":"png"}`）→ 返回华为云 OBS 直传凭证（accessId/policy/signature/key/callbackBody 等）；
+  2. `POST https://csdn-img-blog.obs.cn-north-4.myhuaweicloud.com`（multipart：key/policy/signature/callbackBody/AccessKeyId/x:rtype/file 等）→ 响应直接给出 `https://i-blog.csdnimg.cn/direct/<hash>.png`。
+- **阻塞点**：signature 接口校验动态 `x-ca-signature`（HMAC 按请求计算，硬编码复用返回 401 "HMAC signature does not match"），需逆向编辑器前端签名算法后实现。短期替代：图片经浏览器自动化粘贴上传，或文章内使用已有图床 URL。
+
 ## [1.1.0] - 2026-09-14（CSDN 发文增强版）
 
 ### 针对发布工具 `publishArticle2Csdn` 的新增参数
